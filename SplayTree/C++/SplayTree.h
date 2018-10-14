@@ -9,7 +9,7 @@
 #include <cassert>
 using namespace std;
 
-const int MAXL = 100005;
+const int MAXN = 100005;
 const int INF = 0x3f3f3f3f;
 
 class SplayTree{
@@ -21,9 +21,9 @@ private:
         int ch[2]; // 0表示左孩子，1表示有孩子
         int sum; // 自己 + 自己下级的节点数，根节点sum = 1
         int recy; // 自己的重复次数
-    }node[MAXL];
+    }node[MAXN];
     int size, nodes; // size --> SplayTree中的元素个数
-                     // nodes --> SplayTree中的节点个数
+    // nodes --> SplayTree中的节点个数
 
     //维护第index个节点的sum
     void upDate(int index){
@@ -70,7 +70,7 @@ private:
             int fa = node[u].father;
             // u为目标位置的左（右）孩子时，只需要旋转一次
             if(node[fa].father == anc) rotate(u);
-            // u与父亲节点同侧
+                // u与父亲节点同侧
             else if(identify(u) == identify(fa)){
                 rotate(fa);
                 rotate(u);
@@ -93,16 +93,18 @@ private:
     // 摧毁节点
     void destroy(int index){
         node[index].v = node[index].ch[0] = node[index].ch[1] =
-                node[index].father = node[index].sum = node[index].recy = 0;
+        node[index].father = node[index].sum = node[index].recy = 0;
+        //if(index == nodes) nodes --;
     }
 
     // 插入节点
     // 返回插入节点的index
     int insert(int value){
         size ++;
-        if(nodes == 0){
-            root = 1;
+        if(root == 0){
             add(value, 0);
+            root = nodes;
+            return nodes;
         }
         else{
             int cur = root;
@@ -124,6 +126,9 @@ private:
     }
 
 public:
+    SplayTree(){
+        size = nodes = 0;
+    }
     // 查找value在SplayTree中的节点编号
     // 若查找失败，返回0
     int find(int value){
@@ -149,6 +154,7 @@ public:
     void pop(int value){
         int tot = find(value);
         if(!tot) return;
+        //assert(!tot);
         size --;
         if(node[tot].recy > 1){
             node[tot].recy --;
@@ -160,6 +166,11 @@ public:
             node[root].father = 0;
             destroy(tot);
         }
+        else if(!node[tot].ch[1]){
+            root = node[tot].ch[0];
+            node[root].father = 0;
+            destroy(tot);
+        }
         else{
             int left = node[tot].ch[0];
             int right = node[tot].ch[1];
@@ -168,6 +179,8 @@ public:
             connect(right, left, 1);
             connect(left, 0, 1);
             upDate(left);
+            root = node[tot].ch[0];
+            node[root].father = 0;
             destroy(tot);
         }
     }
@@ -190,23 +203,29 @@ public:
                 cur = node[cur].ch[1];
             }
         }
-        Splay(cur, root);
+        if(cur) Splay(cur, root);
         return res;
     }
 
     // 获取排名为n的元素
     int select(int n){
+
+        //cout << "n:" << n << " " << "size:" << size << endl;
         if(n > size) return -1;
         int cur = root;
         while(true){
-            int left = node[cur].ch[0];
-            if(n > node[left].sum && n <= node[left].sum + node[cur].recy)
-                break;
-            else if(n <= node[left].sum)
-                cur = left;
-            else cur = node[cur].ch[1];
+            int temp = node[cur].sum - node[node[cur].ch[1]].sum;
+            if(n > node[node[cur].ch[0]].sum && n <= temp) break;
+            else if(n <= node[node[cur].ch[0]].sum){
+                cur = node[cur].ch[0];
+            }
+            else{
+                n -= temp;
+                cur = node[cur].ch[1];
+            }
         }
         Splay(cur, root);
+        //if(node[cur].v == 254822) cout << "select: " << n << endl;
         return node[cur].v;
     }
 
@@ -216,8 +235,8 @@ public:
         int res = -INF;
         while(cur){
             if(node[cur].v < value && node[cur].v > res) res = node[cur].v;
-            else if(node[cur].v > value) cur = node[cur].ch[0];
-            else cur = node[cur].ch[1];
+            if(node[cur].v < value) cur = node[cur].ch[1];
+            else cur = node[cur].ch[0];
         }
         return res;
     }
@@ -228,12 +247,14 @@ public:
         int res = INF;
         while(cur){
             if(node[cur].v > value && node[cur].v < res) res = node[cur].v;
-            else if(node[cur].v < value) cur = node[cur].ch[1];
-            else cur = node[cur].ch[0];
+            if(node[cur].v > value) cur = node[cur].ch[0];
+            else cur = node[cur].ch[1];
         }
         return res;
     }
+
 };
+
 
 #undef root
 
